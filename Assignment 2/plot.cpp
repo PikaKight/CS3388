@@ -25,7 +25,12 @@ double frand(){
 }
 
 void drawDotPlot(int N){
-    Points corners[4] = {{xMin, yMin}, {xMin, yMax}, {xMax, yMin}, {xMax, yMax}}; 
+    Points corners[4] = {
+        {xMin, yMin}, // Bottom left
+        {xMin, yMax}, // Top Left
+        {xMax, yMax}, // Top Right
+        {xMax, yMin} // Bottom Right
+        }; 
 
     // Chooses a random point within [(-1,-1), (1, 1)]
     Points pt = {frand(), frand()};
@@ -47,7 +52,9 @@ void drawDotPlot(int N){
 
         do{
             newCorner = rand() % 4;
-        } while ((lastCorner + 2) % 4 == newCorner);
+        } while (
+            (lastCorner + 2) % 4 == newCorner
+        );
 
         // setting p_i to be halfway b/w p_i-1 and the new corner
         pt.x = (pt.x + corners[newCorner].x) / 2;
