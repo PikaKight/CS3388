@@ -1,6 +1,6 @@
-#include "GLFW/glfw3.h"
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
 #include <fstream>
-#include <sstream>
 #include <string>
 #include <iostream>
 #include <vector>
@@ -9,15 +9,28 @@
 
 using namespace std;
 
-vector<pair<float, float>> getCoords(){
+struct Points{
+    float x, y;
+};
 
-    string filepath = "C:/Users/pikak/CS/Courses/CS3388/Assignment 2/dog.txt";
+float rotationAngle = 0.0f;
 
+float centerX = 30.0f;
+float centerY = 30.0f;
+float radius = 25.0f;
+
+int numPoints = 8;
+
+float PI = 3.14159265358979323846f;
+
+vector<Points> coordinates;
+
+vector<Points> getCoords(string filepath){
 
     ifstream file(filepath);
     string line;
     
-    vector<pair<float, float>>  coordinates;
+    vector<Points>  coordinates;
 
     if(!filesystem::exists(filepath)){
         cerr << "File doesn't exist\n";
@@ -51,87 +64,82 @@ vector<pair<float, float>> getCoords(){
     return (coordinates);
 }
 
-void CalculatePoints(float radius, float centerX, float centerY, int numPoints, float* points){
+void drawDog(float cx, float cy, float angle){
+    
+    glPushMatrix();
 
-    // Calc 
+    // Moves the dog to the right place
+    glTranslatef(cx, cy, 0);
 
-}
+    // rotates it
+    glRotatef(angle, 0, 0, 1);
 
-
-void drawDog(const vector<pair<float, float>> &coords){
     glBegin(GL_LINE_STRIP);
 
-    for (const auto &coord: coords){
-        glVertex2f(coord.first, coord.second);
+    for (const auto &coord: coordinates){
+        glVertex2f(coord.x, coord.y);
     }
 
     glEnd();
 
+    glPopMatrix();
+
 }
 
 int main(void)
-{
-    int numPoints = 8;
-    
-    float radius = 25.0f;
-    int centerX = 30;
-    int centerY = 30;
+{        
+    coordinates = getCoords("C:/Users/pikak/CS/Courses/CS3388/Assignment 2/dog.txt");
 
-    float rotationAngle = 0.0f;
-
-    float points[2 * numPoints];
-        
-    vector<pair<float, float>> coordinates = getCoords();
-
-    if (!glfwInit())
+    if (!glfwInit() && !glewInit())
         return -1;
     
     GLFWwindow* window;
 
     /* Create a windowed mode window and its OpenGL context */
-    window = glfwCreateWindow(1280, 1000, "Hello World", NULL, NULL);
+    window = glfwCreateWindow(1280, 1000, "Dog", NULL, NULL);
 
     /* Make the window's context current */
     glfwMakeContextCurrent(window);
 
+    // View Volume
+    glOrtho(0, 60, 0, 60, -1.0, 1.0);
+    
+    // Background Color White
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+    
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
     {
         /* Poll for and process events */
         glfwPollEvents();
         
-        // View Volume
-        glOrtho(0, 60, 0, 60, -1.0, 1.0);
-
 		/* Render here */
         glClear(GL_COLOR_BUFFER_BIT);
-
-        // Background Color White
-        glClearColor(1.0f, 1.0f, 1.0f, 100);
-
 
         // Line Color Black
         glColor3f(0.0f, 0.0f, 0.0f);
 
+        // Draws the 8 dogs in the right 8 positions
         for (int i = 0; i < numPoints; i++){
-        
-            glPushMatrix();
+            
+            // Sets the angle the dog should be place on the circle
+            float angle = i * 45.0f * PI / 180.0f;
 
-            glTranslatef(points[2*i], points[2*i+1], 0.0f);
+            // Sets the x position on the circle
+            float cx = centerX + radius * cos(angle);
+            
+            // Sets the y position on the circle
+            float cy = centerY + radius * sin(angle);
 
-            // glRotated(rotationAngle, 0.0f, 0.0f, 1.0f);
-
-            drawDog(coordinates);
-
-            glPopMatrix();
+            // Draws the dogs
+            drawDog(cx, cy, rotationAngle);
         }
 
+        // rotates the dog by 1 degree per frame
         rotationAngle += 1.0f;
 
-        if (rotationAngle >= 360.0f){
-            rotationAngle -= 360.0f;
-        }
-        
+        glFlush();
+
 		/* Swap front and back buffers */
         glfwSwapBuffers(window);
 
