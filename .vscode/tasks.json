@@ -17,7 +17,7 @@
                 "-lstdc++"
             ],
             "options": {
-                "cwd": "C:/Users/pikak/CS/Courses/CS3388"
+                "cwd": "C:/msys64/ucrt64/bin"
             },
             "problemMatcher": [
                 "$gcc"
