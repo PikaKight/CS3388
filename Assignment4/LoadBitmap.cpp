@@ -17,8 +17,6 @@
  */
 void loadARGB_BMP(const char* imagepath, unsigned char** data, unsigned int* width, unsigned int* height) {
 
-    printf("Reading image %s\n", imagepath);
-
     // Data read from the header of the BMP file
     unsigned char header[54];
     unsigned int dataPos;
@@ -83,5 +81,4 @@ void loadARGB_BMP(const char* imagepath, unsigned char** data, unsigned int* wid
     // Everything is in memory now, the file can be closed.
     fclose (file);
 
-    printf("\ndone reading", imagepath);
 }

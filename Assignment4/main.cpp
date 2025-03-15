@@ -6,6 +6,7 @@
 #include <vector>
 #include <filesystem>
 #include <cmath>
+#include <bits/stdc++.h>
 
 #include <glm/vec3.hpp>
 #include <glm/glm.hpp>
@@ -103,32 +104,32 @@ GLuint loadShader()
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 
 
-    string vertexShaderSource = "(\n\
-        #version 330 core\n\
-        layout (location = 0) in vec3 aPos;\n\
-        layout (location = 1) in vec3 aNormal;\n\
-        layout (location = 2) in vec2 aTexCoord;\n\
-        \n\
-        uniform mat4 MVP;\n\
-        \n\
-        out vec2 TexCoord;\n\
-        \n\
-        void main() {\n\
-            gl_Position = MVP * vec4(aPos, 1.0);\n\
-            TexCoord = aTexCoord;\n\
-        }\n\
+    string vertexShaderSource = R"(
+        #version 330 core
+        layout (location = 0) in vec3 aPos;
+        layout (location = 1) in vec3 aNormal;
+        layout (location = 2) in vec2 aTexCoord;
+        
+        uniform mat4 MVP;
+        
+        out vec2 TexCoord;
+        
+        void main() {
+            gl_Position = MVP * vec4(aPos, 1.0);
+            TexCoord = aTexCoord;
+        }
         )";
 
-    string fragmentShaderSource = "(\n\
-        #version 330 core\n\
-        out vec4 FragColor;\n\
-        \n\
-        in vec2 TexCoord;\n\
-        uniform sampler2D texture1;\n\
-        \n\
-        void main() {\n\
-            FragColor = texture(texture1, TexCoord);\n\
-        }\n\
+    string fragmentShaderSource = R"(
+        #version 330 core
+        out vec4 FragColor;
+        
+        in vec2 TexCoord;
+        uniform sampler2D texture1;
+        
+        void main() {
+            FragColor = texture(texture1, TexCoord);
+        }
         )";
 
 
@@ -187,53 +188,73 @@ public:
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(TriData), &faces[0], GL_STATIC_DRAW);
 
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(VertexData), (void *)0);
+        GLsizei stride = sizeof(VertexData);
+        
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void *)0);
         glEnableVertexAttribArray(0);
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(VertexData), (void *)(3 * sizeof(float)));
+
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void *)(3 * sizeof(float)));
         glEnableVertexAttribArray(1);
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(VertexData), (void *)(6 * sizeof(float)));
+
+        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, stride, (void *)(6 * sizeof(float)));
         glEnableVertexAttribArray(2);
+
+        glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, stride, (void *)(9 * sizeof(float)));
+        glEnableVertexAttribArray(3);
 
         glBindVertexArray(0);
     }
 
+
     void draw(glm::mat4 MVP)
     {
         glUseProgram(shaderProgram);
+
+        GLuint MVP_Location = glGetUniformLocation(shaderProgram, "MVP");
+        glUniformMatrix4fv(MVP_Location, 1, GL_FALSE, glm::value_ptr(MVP));
+
         glBindVertexArray(VAO);
         glBindTexture(GL_TEXTURE_2D, textureID);
         glDrawElements(GL_TRIANGLES, faces.size() * 3, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
     }
-};
 
-vector<TexturedMesh> meshes;
+};
 
 void processInput(GLFWwindow *window)
 {
     if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
         camPos += camSpeed * camFront;
+
     if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
         camPos -= camSpeed * camFront;
+
     if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
     {
-        float x = camFront.x * cos(camAngle) - camFront.z * sin(camAngle);
-        float z = camFront.x * sin(camAngle) - camFront.z * cos(camAngle);
+        float angle = radians(camAngle);
+        float x = camFront.x * cos(angle) - camFront.z * sin(angle);
+        float z = camFront.x * sin(angle) - camFront.z * cos(angle);
         camFront = normalize(vec3(x, 0.0f, z));
     }
 
     if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
     {
-        float x = camFront.x * cos(-camAngle) - camFront.z * sin(-camAngle);
-        float z = camFront.x * sin(-camAngle) - camFront.z * cos(-camAngle);
+        float angle = radians(-camAngle);
+        float x = camFront.x * cos(angle) - camFront.z * sin(angle);
+        float z = camFront.x * sin(angle) - camFront.z * cos(angle);
         camFront = normalize(vec3(x, 0.0f, z));
     }
 }
+
+vector<TexturedMesh> opaqueMeshes;
+vector<TexturedMesh> transparentMeshes;
 
 void setMesh()
 {
     vector<string> bmp;
     vector<string> ply;
+
+    vector<string> transparent = {"Curtains.ply", "DoorBG.ply", "MetalObjects.ply"};
 
     for (const auto &file : directory_iterator(PATH))
     {
@@ -241,6 +262,8 @@ void setMesh()
         {
             continue;
         }
+        
+        string fname = file.path().filename().string();
 
         if (file.path().extension() == ".bmp")
         {
@@ -252,12 +275,16 @@ void setMesh()
         }
     }
 
-
     for (int i = 0; i < bmp.size(); i++)
     {
-        printf("\nSetting %d\n", i);
-        meshes.push_back(TexturedMesh(ply[i], bmp[i]));
-        printf("\nDone %d\n", i);
+        if (find(transparent.begin(), transparent.end(), ply[i].substr(ply[i].find_last_of("/\\") + 1)) != transparent.end())
+        {
+            transparentMeshes.push_back(TexturedMesh(ply[i], bmp[i]));
+        }
+        else
+        {
+            opaqueMeshes.push_back(TexturedMesh(ply[i], bmp[i]));
+        }
     }
 }
 
@@ -304,9 +331,21 @@ int main(int argc, char **argv)
         mat4 view = lookAt(camPos, camPos + camFront, camUp);
         mat4 MVP = projection * view;
 
-        for (auto &mesh : meshes)
+        for (auto &mesh : opaqueMeshes)
             mesh.draw(MVP);
 
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glDepthMask(GL_FALSE); // Disable depth writing
+
+
+        for (auto &mesh : transparentMeshes)
+            mesh.draw(MVP);
+
+        glDepthMask(GL_TRUE); // Re-enable depth writing
+        glDisable(GL_BLEND); // Disable blending after transparent objects
+
+        
         /* Swap front and back buffers */
         glfwSwapBuffers(window);
 
