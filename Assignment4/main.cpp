@@ -12,7 +12,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include "LoadBitmap.cpp"
+#include "LoadBitmap.h"
 
 using namespace std;
 using namespace glm;
@@ -126,20 +126,50 @@ GLuint loadShader()
         }
         )";
 
+    // Compile Vertex Shader
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
     glCompileShader(vertexShader);
+
+    // Check Vertex Shader Compilation
+    GLint success;
+    GLchar infoLog[512];
+    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
+    if (!success)
+    {
+        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+        printf("ERROR: Vertex Shader Compilation Failed\n %s", infoLog);
+    }
 
     // Compile Fragment Shader
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
     glCompileShader(fragmentShader);
 
+    // Check Fragment Shader Compilation
+    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
+    if (!success)
+    {
+        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
+        printf("ERROR: Fragment Shader Compilation Failed\n %s", infoLog);
+        return 0;
+    }
+
     // Link Shaders into a Program
     GLuint shaderProgram = glCreateProgram();
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
     glLinkProgram(shaderProgram);
+
+    // Check Program Linking
+    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
+    if (!success)
+    {
+        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
+        std::cerr << "ERROR: Shader Program Linking Failed\n"
+                  << infoLog << std::endl;
+        return 0;
+    }
 
     // Clean up shaders after linking
     glDeleteShader(vertexShader);
