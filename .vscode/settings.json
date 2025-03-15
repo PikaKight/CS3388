@@ -3,6 +3,9 @@
         "vector": "cpp",
         "iostream": "cpp",
         "cmath": "cpp",
+        "random": "cpp",
+        "deque": "cpp",
+        "string": "cpp",
         "array": "cpp",
         "atomic": "cpp",
         "bit": "cpp",
@@ -23,8 +26,6 @@
         "ctime": "cpp",
         "cwchar": "cpp",
         "cwctype": "cpp",
-        "deque": "cpp",
-        "string": "cpp",
         "unordered_map": "cpp",
         "exception": "cpp",
         "algorithm": "cpp",
@@ -34,7 +35,6 @@
         "memory_resource": "cpp",
         "numeric": "cpp",
         "optional": "cpp",
-        "random": "cpp",
         "ratio": "cpp",
         "string_view": "cpp",
         "system_error": "cpp",
@@ -58,6 +58,9 @@
         "text_encoding": "cpp",
         "cinttypes": "cpp",
         "typeinfo": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "any": "cpp",
+        "ranges": "cpp",
+        "scoped_allocator": "cpp"
     }
 }

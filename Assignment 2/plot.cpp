@@ -4,7 +4,6 @@
 #include <string>
 #include <iostream>
 #include <vector>
-#include <filesystem>
 #include <cmath>
 
 #define N_MAX 5000000
@@ -15,16 +14,21 @@ struct Points{
     double x, y;
 };
 
+// Init square size
 double xMin= -1.0, yMin = -1.0;
 double xMax= 1.0, yMax = 1.0;
 
+// RNG from -1 to 1
 double frand(){
     double x = ((double)rand())/(double) RAND_MAX;
  
     return ((rand() % 2 ) ? -x:x);
 }
 
+// Draws the dot plot
 void drawDotPlot(int N){
+    
+    // The four corners
     Points corners[4] = {
         {xMin, yMin}, // Bottom left
         {xMin, yMax}, // Top Left
@@ -47,9 +51,10 @@ void drawDotPlot(int N){
     glBegin(GL_POINTS);
 
     // Draws N number of dots
-    for (int i = 0; i < N; i++){
+    for (int i = 1; i < N; i++){
         int newCorner;
 
+        // makes sure the new corner is not diagonal to the last corner
         do{
             newCorner = rand() % 4;
         } while (
@@ -75,13 +80,16 @@ int main(int argc, char** argv)
 {        
     srand(time(0));
 
+    // Makes sure that the user enters the number of dots, screen width and height
     if (argc != 4){
-        cout << "Please Enter N, Screen Width, Screen Height\n";
+        cout << "Please Enter the number of dots, Screen Width, Screen Height\n";
         return -1;
     }
 
+    // Makes sure the number of dots is less than or equal to 5000000
     int N = min(atoi(argv[1]), N_MAX);
 
+    // Gets the Screen Resolution
     int width = atoi(argv[2]);
     int height = atoi(argv[3]);
 
