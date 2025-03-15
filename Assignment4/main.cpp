@@ -108,10 +108,9 @@ GLuint loadTexture(const string &fname)
 
 GLuint loadShader()
 {
-    
+
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-
 
     string vertexShaderSource = R"(
         #version 330 core
@@ -142,7 +141,6 @@ GLuint loadShader()
         }
         )";
 
-
     // Compile Vertex Shader
     const char *vertexShaderSourcePointer = vertexShaderSource.c_str();
     const char *fragmentShaderSourcePointer = fragmentShaderSource.c_str();
@@ -150,15 +148,44 @@ GLuint loadShader()
     glShaderSource(vertexShader, 1, &vertexShaderSourcePointer, NULL);
     glCompileShader(vertexShader);
 
+    // Check Vertex Shader Compilation
+    GLint success;
+    GLchar infoLog[512];
+    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
+    if (!success)
+    {
+        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+        printf("ERROR: Vertex Shader Compilation Failed\n %s", infoLog);
+    }
+
     // Compile Fragment Shader
     glShaderSource(fragmentShader, 1, &fragmentShaderSourcePointer, NULL);
     glCompileShader(fragmentShader);
+
+    // Check Fragment Shader Compilation
+    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
+    if (!success)
+    {
+        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
+        printf("ERROR: Fragment Shader Compilation Failed\n %s", infoLog);
+        return 0;
+    }
 
     // Link Shaders into a Program
     GLuint shaderProgram = glCreateProgram();
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
     glLinkProgram(shaderProgram);
+
+    // Check Program Linking
+    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
+    if (!success)
+    {
+        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
+        std::cerr << "ERROR: Shader Program Linking Failed\n"
+                  << infoLog << std::endl;
+        return 0;
+    }
 
     // Clean up shaders after linking
     glDeleteShader(vertexShader);
