@@ -9,12 +9,15 @@
 
 using namespace std;
 
+// Struct for defining the x and y of a point
 struct Points{
     float x, y;
 };
 
+// Starting Rotation Angle
 float rotationAngle = 0.0f;
 
+// The circle's information
 float centerX = 30.0f;
 float centerY = 30.0f;
 float radius = 25.0f;
@@ -23,8 +26,11 @@ int numPoints = 8;
 
 float PI = 3.14159265358979323846f;
 
+string path = "C:/Users/pikak/CS/Courses/CS3388/Assignment 2/dog.cpp";
+
 vector<Points> coordinates;
 
+// Gets the coordinates and data to draw the dogs from the the text file
 vector<Points> getCoords(string filepath){
 
     ifstream file(filepath);
@@ -32,6 +38,7 @@ vector<Points> getCoords(string filepath){
     
     vector<Points>  coordinates;
 
+    // Error Handling for opening the file
     if(!filesystem::exists(filepath)){
         cerr << "File doesn't exist\n";
 
@@ -47,6 +54,7 @@ vector<Points> getCoords(string filepath){
         return coordinates;
     }
 
+    // Gets all the data from the file and makes it into pair of x and y
     while (getline(file, line)){
         stringstream ss(line);
 
@@ -64,6 +72,7 @@ vector<Points> getCoords(string filepath){
     return (coordinates);
 }
 
+// Draws the dogs
 void drawDog(float cx, float cy, float angle){
     
     glPushMatrix();
@@ -76,6 +85,7 @@ void drawDog(float cx, float cy, float angle){
 
     glBegin(GL_LINE_STRIP);
 
+    // Draws the dogs based on the data
     for (const auto &coord: coordinates){
         glVertex2f(coord.x, coord.y);
     }
@@ -88,7 +98,7 @@ void drawDog(float cx, float cy, float angle){
 
 int main(void)
 {        
-    coordinates = getCoords("C:/Users/pikak/CS/Courses/CS3388/Assignment 2/dog.txt");
+    coordinates = getCoords(path);
 
     if (!glfwInit() && !glewInit())
         return -1;
