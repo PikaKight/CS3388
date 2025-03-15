@@ -70,7 +70,7 @@ void readPLYFile(string fname, vector<VertexData> &vertices, vector<TriData> &fa
 
         file >> v.x >> v.y >> v.z >> v.nx >> v.ny >> v.nz >> v.u >> v.v;
 
-        v.r = 1.0f;  // White color by default
+        v.r = 1.0f; // White color by default
         v.g = 1.0f;
         v.b = 1.0f;
 
@@ -83,7 +83,6 @@ void readPLYFile(string fname, vector<VertexData> &vertices, vector<TriData> &fa
         file >> n >> v1 >> v2 >> v3;
         faces.push_back({v1, v2, v3});
     }
-
 }
 
 GLuint loadTexture(const string &fname)
@@ -194,172 +193,189 @@ GLuint loadShader()
     return shaderProgram;
 }
 
-class TexturedMesh {
-    public:
-        GLuint VBO, VAO, EBO, textureID, shaderProgram;
-        vector<VertexData> vertices;
-        vector<TriData> faces;
-    
-        TexturedMesh(const string& plyFile, const string& bmpFile) {
+class TexturedMesh
+{
+public:
+    GLuint VBO, VAO, EBO, textureID, shaderProgram;
+    vector<VertexData> vertices;
+    vector<TriData> faces;
 
-            readPLYFile(plyFile, vertices, faces);
-            textureID = loadTexture(bmpFile);
-            shaderProgram = loadShader();
-            setupMesh();
-        }
-    
-        void setupMesh() {
+    TexturedMesh(const string &plyFile, const string &bmpFile)
+    {
 
-            glGenVertexArrays(1, &VAO);
-            glGenBuffers(1, &VBO);
-            glGenBuffers(1, &EBO);
-    
-            glBindVertexArray(VAO);
-            glBindBuffer(GL_ARRAY_BUFFER, VBO);
-            glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(VertexData), &vertices[0], GL_STATIC_DRAW);
-    
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(TriData), &faces[0], GL_STATIC_DRAW);
-    
-            GLsizei stride = sizeof(VertexData);
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
-            glEnableVertexAttribArray(0);
-    
-            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void*)(3 * sizeof(float)));
-            glEnableVertexAttribArray(1);
-    
-            glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, stride, (void*)(6 * sizeof(float)));
-            glEnableVertexAttribArray(2);
-    
-            glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, stride, (void*)(9 * sizeof(float)));
-            glEnableVertexAttribArray(3);
-    
-            glBindVertexArray(0);
-        }
-    
-        void draw(glm::mat4 MVP) {
-            
-            glUseProgram(shaderProgram);
-
-            GLuint MVP_Location = glGetUniformLocation(shaderProgram, "MVP");
-            glUniformMatrix4fv(MVP_Location, 1, GL_FALSE, glm::value_ptr(MVP));
-    
-            glBindVertexArray(VAO);
-            glBindTexture(GL_TEXTURE_2D, textureID);
-            glDrawElements(GL_TRIANGLES, faces.size() * 3, GL_UNSIGNED_INT, 0);
-            glBindVertexArray(0);
-        }
-    };
-
-    void processInput(GLFWwindow* window) {
-        if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-            camPos += camSpeed * camFront;
-        if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-            camPos -= camSpeed * camFront;
-    
-        if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
-            float angle = radians(camAngle);
-            float x = camFront.x * cos(angle) - camFront.z * sin(angle);
-            float z = camFront.x * sin(angle) + camFront.z * cos(angle);
-            camFront = normalize(vec3(x, 0.0f, z));
-        }
-    
-        if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
-            float angle = radians(-camAngle);
-            float x = camFront.x * cos(angle) - camFront.z * sin(angle);
-            float z = camFront.x * sin(angle) + camFront.z * cos(angle);
-            camFront = normalize(vec3(x, 0.0f, z));
-        }
+        readPLYFile(plyFile, vertices, faces);
+        textureID = loadTexture(bmpFile);
+        shaderProgram = loadShader();
+        setupMesh();
     }
 
-    vector<TexturedMesh> opaque;
-    vector<TexturedMesh> trans;
+    void setupMesh()
+    {
 
-    void setMesh() {
-        vector<string> bmp;
-        vector<string> ply;
-    
-        vector<string> transObjs = {"curtains.bmp", "Curtains.ply", "doorbg.bmp", "DoorBG.ply", "metalobjects.bmp", "MetalObjects.ply"};
+        glGenVertexArrays(1, &VAO);
+        glGenBuffers(1, &VBO);
+        glGenBuffers(1, &EBO);
 
-        for (const auto& file : directory_iterator(PATH)) {
-            if (!file.is_regular_file()) continue;
-    
-            if (file.path().extension() == ".bmp")
-                bmp.push_back(file.path().string());
-            if (file.path().extension() == ".ply")
-                ply.push_back(file.path().string());
-        }
-    
-        size_t numFiles = bmp.size();
-        for (size_t i = 0; i < numFiles; i++){
+        glBindVertexArray(VAO);
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(VertexData), &vertices[0], GL_STATIC_DRAW);
 
-            bool isTransPLY = find(transObjs.begin(), transObjs.end(), path(ply[i]).filename().string()) != transObjs.end();
-            bool isTransBMP = find(transObjs.begin(), transObjs.end(), path(bmp[i]).filename().string()) != transObjs.end();
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(TriData), &faces[0], GL_STATIC_DRAW);
 
-            if (isTransPLY && isTransBMP){
-                trans.push_back(TexturedMesh(ply[i], bmp[i]));
-                continue;
-            }
+        GLsizei stride = sizeof(VertexData);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void *)0);
+        glEnableVertexAttribArray(0);
 
-            opaque.push_back(TexturedMesh(ply[i], bmp[i]));
-            
-        }
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void *)(3 * sizeof(float)));
+        glEnableVertexAttribArray(1);
+
+        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, stride, (void *)(6 * sizeof(float)));
+        glEnableVertexAttribArray(2);
+
+        glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, stride, (void *)(9 * sizeof(float)));
+        glEnableVertexAttribArray(3);
+
+        glBindVertexArray(0);
     }
 
-    int main(int argc, char** argv) {
-        
-        if (argc != 3){
-            cerr << "Please Enter the Screen Width and Screen Height\n";
-            return -1;
-        }
+    void draw(glm::mat4 MVP)
+    {
 
-        int width = atoi(argv[1]); 
-        int height = atoi(argv[2]);
-    
-        if (!glfwInit()) return -1;
-        GLFWwindow* window = glfwCreateWindow(width, height, "PLY Renderer", NULL, NULL);
-        glfwMakeContextCurrent(window);
-        
-        glewInit();
-        glEnable(GL_DEPTH_TEST);
-    
-        mat4 projection = perspective(radians(45.0f), float(width) / float(height), 0.1f, 100.0f);
-    
-        setMesh();
+        glUseProgram(shaderProgram);
 
-        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+        GLuint MVP_Location = glGetUniformLocation(shaderProgram, "MVP");
+        glUniformMatrix4fv(MVP_Location, 1, GL_FALSE, glm::value_ptr(MVP));
 
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-        while (!glfwWindowShouldClose(window)) {
-            glfwPollEvents();
-            
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-            processInput(window);
-    
-            mat4 model = mat4(1.0f);
-            model = translate(model, vec3(0.0f, 0.0f, -1.0f));  // Translate the object along the Z-axis
-
-            mat4 view = lookAt(camPos, camPos + camFront, camUp);
-            mat4 MVP = projection * view * model;
-
-            for (auto& mesh : opaque) {
-                mesh.draw(MVP);
-            }
-    
-            glDepthMask(GL_FALSE);  
-
-            for (auto& mesh : trans) {
-                mesh.draw(MVP);
-            }
-            
-            glDepthMask(GL_TRUE);
-
-            glfwSwapBuffers(window);
-        }
-    
-        glfwTerminate();
-        return 0;
+        glBindVertexArray(VAO);
+        glBindTexture(GL_TEXTURE_2D, textureID);
+        glDrawElements(GL_TRIANGLES, faces.size() * 3, GL_UNSIGNED_INT, 0);
+        glBindVertexArray(0);
     }
+};
+
+void processInput(GLFWwindow *window)
+{
+    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+        camPos += camSpeed * camFront;
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+        camPos -= camSpeed * camFront;
+
+    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+    {
+        float angle = radians(camAngle);
+        float x = camFront.x * cos(angle) - camFront.z * sin(angle);
+        float z = camFront.x * sin(angle) + camFront.z * cos(angle);
+        camFront = normalize(vec3(x, 0.0f, z));
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+    {
+        float angle = radians(-camAngle);
+        float x = camFront.x * cos(angle) - camFront.z * sin(angle);
+        float z = camFront.x * sin(angle) + camFront.z * cos(angle);
+        camFront = normalize(vec3(x, 0.0f, z));
+    }
+}
+
+vector<TexturedMesh> opaque;
+vector<TexturedMesh> trans;
+
+void setMesh()
+{
+    vector<string> bmp;
+    vector<string> ply;
+
+    vector<string> transObjs = {"curtains.bmp", "Curtains.ply", "doorbg.bmp", "DoorBG.ply", "metalobjects.bmp", "MetalObjects.ply"};
+
+    for (const auto &file : directory_iterator(PATH))
+    {
+        if (!file.is_regular_file())
+            continue;
+
+        if (file.path().extension() == ".bmp")
+            bmp.push_back(file.path().string());
+        if (file.path().extension() == ".ply")
+            ply.push_back(file.path().string());
+    }
+
+    size_t numFiles = bmp.size();
+    for (size_t i = 0; i < numFiles; i++)
+    {
+
+        bool isTransPLY = find(transObjs.begin(), transObjs.end(), path(ply[i]).filename().string()) != transObjs.end();
+        bool isTransBMP = find(transObjs.begin(), transObjs.end(), path(bmp[i]).filename().string()) != transObjs.end();
+
+        if (isTransPLY && isTransBMP)
+        {
+            trans.push_back(TexturedMesh(ply[i], bmp[i]));
+            continue;
+        }
+
+        opaque.push_back(TexturedMesh(ply[i], bmp[i]));
+    }
+}
+
+int main(int argc, char **argv)
+{
+
+    if (argc != 3)
+    {
+        cerr << "Please Enter the Screen Width and Screen Height\n";
+        return -1;
+    }
+
+    int width = atoi(argv[1]);
+    int height = atoi(argv[2]);
+
+    if (!glfwInit())
+        return -1;
+    GLFWwindow *window = glfwCreateWindow(width, height, "PLY Renderer", NULL, NULL);
+    glfwMakeContextCurrent(window);
+
+    glewInit();
+    glEnable(GL_DEPTH_TEST);
+
+    mat4 projection = perspective(radians(45.0f), float(width) / float(height), 0.1f, 100.0f);
+
+    setMesh();
+
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    while (!glfwWindowShouldClose(window))
+    {
+        glfwPollEvents();
+
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        processInput(window);
+
+        mat4 model = mat4(1.0f);
+        model = translate(model, vec3(0.0f, 0.0f, -1.0f)); // Translate the object along the Z-axis
+
+        mat4 view = lookAt(camPos, camPos + camFront, camUp);
+        mat4 MVP = projection * view * model;
+
+        for (auto &mesh : opaque)
+        {
+            mesh.draw(MVP);
+        }
+
+        glDepthMask(GL_FALSE);
+
+        for (auto &mesh : trans)
+        {
+            mesh.draw(MVP);
+        }
+
+        glDepthMask(GL_TRUE);
+
+        glfwSwapBuffers(window);
+    }
+
+    glfwTerminate();
+    return 0;
+}
