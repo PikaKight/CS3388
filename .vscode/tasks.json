@@ -10,13 +10,8 @@
                 "${file}",
                 "-o",
                 "${fileDirname}\\${fileBasenameNoExtension}.exe",
-                "-lfreeglut",
-                "-lglew32",
-                "-lopengl32",
-                "-lglfw3",
-                "-lm",
-                "-lstdc++",
-                
+                "-lfreeglut -lglew32 -lopengl32 -lglfw3 -lm -lstdc++",
+               
             ],
             "options": {
                 "cwd": "C:/msys64/ucrt64/bin"
