@@ -61,6 +61,7 @@
         "variant": "cpp",
         "any": "cpp",
         "ranges": "cpp",
-        "scoped_allocator": "cpp"
+        "scoped_allocator": "cpp",
+        "filesystem": "cpp"
     }
 }
