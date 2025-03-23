@@ -12,8 +12,13 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "marching_cubes.h"
+#include "camera.h"
+
 using namespace std;
 using namespace glm;
+
+Camera camera;
 
 void framebuffer_size_callback(GLFWwindow *window, int w, int h)
 {
@@ -28,22 +33,17 @@ GLuint loadShader()
 
     string vertexShaderSource = R"(
         #version 330 core
-        layout(location = 0) in vec3 aPos;
-        layout(location = 1) in vec3 aNormal;
-
+        layout (location = 0) in vec3 aPos;
+        layout (location = 1) in vec3 aNormal;
+        layout (location = 3) in vec2 aTexCoord;
+        
         uniform mat4 MVP;
-        uniform mat4 V;
-        uniform vec3 LightDir;
-
-        out vec3 FragPos;
-        out vec3 Normal;
-        out vec3 LightDirection;
-
+        
+        out vec2 TexCoord;
+        
         void main() {
             gl_Position = MVP * vec4(aPos, 1.0);
-            FragPos = vec3(V * vec4(aPos, 1.0));
-            Normal = mat3(transpose(inverse(V))) * aNormal;
-            LightDirection = normalize(-LightDir);
+            TexCoord = aTexCoord;
         }
         )";
 
@@ -52,22 +52,11 @@ GLuint loadShader()
         out vec4 FragColor;
         
         in vec2 TexCoord;
-        uniform vec3 modelColor;
-
+        uniform sampler2D texture1;
+        
         void main() {
-            vec3 ambient = vec3(0.2) * modelColor;
 
-            vec3 norm = normalize(Normal);
-            float diff = max(dot(norm, LightDirection), 0.0);
-            vec3 diffuse = diff * modelColor;
-
-            vec3 viewDir = normalize(-FragPos);
-            vec3 reflectDir = reflect(-LightDirection, norm);
-            float spec = pow(max(dot(viewDir, reflectDir), 0.0), 64);
-            vec3 specular = vec3(1.0) * spec;
-
-            vec3 result = ambient + diffuse + specular;
-            FragColor = vec4(result, 1.0);
+            FragColor = texture(texture1, TexCoord);
         }
         )";
 
@@ -82,11 +71,7 @@ GLuint loadShader()
     GLint success;
     GLchar infoLog[512];
     glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
-        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-        printf("ERROR: Vertex Shader Compilation Failed\n %s", infoLog);
-    }
+    
 
     // Compile Fragment Shader
     glShaderSource(fragmentShader, 1, &fragmentShaderSourcePointer, NULL);
@@ -94,12 +79,7 @@ GLuint loadShader()
 
     // Check Fragment Shader Compilation
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
-        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-        printf("ERROR: Fragment Shader Compilation Failed\n %s", infoLog);
-        return 0;
-    }
+    
 
     // Link Shaders into a Program
     GLuint shaderProgram = glCreateProgram();
@@ -109,13 +89,7 @@ GLuint loadShader()
 
     // Check Program Linking
     glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-    if (!success)
-    {
-        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-        std::cerr << "ERROR: Shader Program Linking Failed\n"
-                  << infoLog << std::endl;
-        return 0;
-    }
+   
 
     // Clean up shaders after linking
     glDeleteShader(vertexShader);
@@ -149,6 +123,7 @@ int main(int argc, char **argv)
 
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 
+
     GLuint shaderID = loadShader();
 
     unsigned int VAO, VBO;
@@ -157,7 +132,7 @@ int main(int argc, char **argv)
 
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    // glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
@@ -168,7 +143,15 @@ int main(int argc, char **argv)
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
+        mat4 view = camera.getViewMatrix();
+        mat4 projection = glm::perspective(glm::radians(45.0f), (float)width / height, 0.1f, 100.0f);
+        mat4 MVP = projection * view;
 
+        glUseProgram(shaderID);
+        glUniformMatrix4fv(glGetUniformLocation(shaderID, "MVP"), 1, GL_FALSE, value_ptr(MVP));
+        glUniform3f(glGetUniformLocation(shaderID, "modelColor"), 1.0f, 0.5f, 0.3f);
+
+        
         glfwSwapBuffers(window);
     }
 
