@@ -11,6 +11,7 @@ public:
     mat4 getViewMatrix();
     void processMouse(float dx, float dy);
     void processScroll(float delta);
+    void processKeyboard(float delta);
 };
 
 #endif

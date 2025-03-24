@@ -95,30 +95,18 @@ GLuint loadShader()
 
     glShaderSource(vertexShader, 1, &vertexShaderSourcePointer, NULL);
     glCompileShader(vertexShader);
-
-    // Check Vertex Shader Compilation
-    GLint success;
-    GLchar infoLog[512];
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
     
 
     // Compile Fragment Shader
     glShaderSource(fragmentShader, 1, &fragmentShaderSourcePointer, NULL);
     glCompileShader(fragmentShader);
 
-    // Check Fragment Shader Compilation
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-    
 
     // Link Shaders into a Program
     GLuint shaderProgram = glCreateProgram();
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
     glLinkProgram(shaderProgram);
-
-    // Check Program Linking
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-   
 
     // Clean up shaders after linking
     glDeleteShader(vertexShader);
@@ -129,6 +117,7 @@ GLuint loadShader()
 
 float lastX = 400, lastY = 300;
 bool firstMouse = true;
+float zoomFactor = 0.5f;
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
     if (firstMouse) {
@@ -147,6 +136,17 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
     camera.processScroll(yoffset);
+}
+
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods){
+
+    if (key == GLFW_KEY_UP && action==GLFW_PRESS){
+        camera.processKeyboard(zoomFactor);
+    }
+
+    if (key == GLFW_KEY_DOWN && action==GLFW_PRESS){
+        camera.processKeyboard(-zoomFactor);
+    }
 }
 
 void drawBoundaryBox(float min, float max){
@@ -197,70 +197,10 @@ void drawBoundaryBox(float min, float max){
     glBindVertexArray(0);
 
 }
-/**
-void drawArrowHead(vec3 pos, vec3 direction, float size){
-    vec3 right = normalize(cross(direction, vec3(0.0f, 0.0f, 1.0f))) * size;
-    vec3 left = normalize(cross(direction, vec3(0.0f, 0.0f, -1.0f))) * size;
 
-    GLfloat vertices[] = {
-        pos.x, pos.y, pos.z,  // Base of the triangle
-        pos.x + direction.x * size, pos.y + direction.y * size, pos.z + direction.z * size, // Tip of the arrowhead
-        pos.x + right.x, pos.y + right.y, pos.z + right.z,  // Right side of the triangle
-        pos.x + left.x, pos.y + left.y, pos.z + left.z   // Left side of the triangle
-    };
 
-    GLuint VAO, VBO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    // Enable vertex attributes (position)
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
-    glEnableVertexAttribArray(0);
-
-    // Draw the arrowhead (as a triangle fan)
-    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-
-    // Clean up
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-}
-
-void drawAxis(vec3 start, vec3 direction, float max) {
-    
-    vec3 end = direction * max;
-
-    GLfloat axisvertices[] = {
-        start.x, start.y, start.z,
-        end.x, end.y, end.z
-    };
-
-    GLuint VBO, VAO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-
-    glBindVertexArray(VAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(axisvertices), axisvertices, GL_STATIC_DRAW);
-
-    // pos attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
-    glEnableVertexAttribArray(0);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    glBindVertexArray(0);
-
-    // Render the axes
-    glBindVertexArray(VAO);
-    glDrawArrays(GL_LINES, 0, 3);
-    glBindVertexArray(0);
-}
-*/
 void drawMarchingCubes(const vector<float>& vertices, const vector<float>& normals) {
+    
     GLuint VBO, VAO, NBO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
@@ -271,7 +211,6 @@ void drawMarchingCubes(const vector<float>& vertices, const vector<float>& norma
     // Store vertices
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), &vertices[0], GL_STATIC_DRAW);
-    
 
     // Store normals
     glBindBuffer(GL_ARRAY_BUFFER, NBO);
@@ -359,13 +298,14 @@ int main(int argc, char **argv)
 
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
+    glfwSetKeyCallback(window, key_callback);
 
     GLuint shaderID = loadShader();
 
     float isovalue = 0.0f, min = -1.5f, max =  1.5f, stepsize = 0.1f;
 
     auto vertices = marching_cubes([](float x, float y, float z) {
-        return x*x + y*y + z*z - 1.0f;  // Sphere function
+        return y - sin(x)*cos(z);  // Sphere function
     }, isovalue, min, max, stepsize);
 
     vector<float> normals = compute_normals(vertices);
@@ -400,37 +340,19 @@ int main(int argc, char **argv)
 
         glUniformMatrix4fv(glGetUniformLocation(shaderID, "MVP"), 1, GL_FALSE, glm::value_ptr(MVP));
         glUniformMatrix4fv(glGetUniformLocation(shaderID, "V"), 1, GL_FALSE, glm::value_ptr(view));
-        glUniform3f(glGetUniformLocation(shaderID, "LightDir"), 1.0f, 1.0f, -1.0f);
+        glUniform3f(glGetUniformLocation(shaderID, "LightDir"), 0.0f, 0.0f, -1.0f);
         glUniform3f(glGetUniformLocation(shaderID, "modelColor"), 0.0f, 0.482f, 0.655f);
         glUniform1f(glGetUniformLocation(shaderID, "shininess"), 64.0f);
         glUniform3f(glGetUniformLocation(shaderID, "ambientColor"), 0.2f, 0.2f, 0.2f);
         glUniform3f(glGetUniformLocation(shaderID, "specularColor"), 1.0f, 1.0f, 1.0f);
 
-        
         // Draw the bounding box and axes
-        glUniform1i(glGetUniformLocation(shaderID, "hasOtherColor"), true);
+        glUniform1i(glGetUniformLocation(shaderID, "hasOtherColor"), 1);
         glUniform3f(glGetUniformLocation(shaderID, "fragColor"), 1.0f, 1.0f, 1.0f);
         drawBoundaryBox(min, max);
-/**
-        vec3 origin = vec3(min, min, max);
-        vec3 xAxis = vec3(min, min, max);
-        vec3 yAxis = vec3(min, min, max);
-        vec3 zAxis = vec3(min, min, max);
 
-        glUniform3f(glGetUniformLocation(shaderID, "fragColor"), 1.0f, 0.0f, 0.0f);
-        drawAxis(origin, xAxis, max);
-        drawArrowHead(origin, xAxis, 2.0f);
 
-        glUniform3f(glGetUniformLocation(shaderID, "fragColor"), 0.0f, 1.0f, 0.0f);
-        drawAxis(origin, yAxis, max);
-        drawArrowHead(origin, yAxis, 2.0f);
-        
-        glUniform3f(glGetUniformLocation(shaderID, "fragColor"), 0.0f, 0.0f, 1.0f);
-        drawAxis(origin, zAxis, max);
-        drawArrowHead(origin, zAxis, 2.0f);
-*/
-
-        glUniform1i(glGetUniformLocation(shaderID, "hasOtherColor"), false);
+        glUniform1i(glGetUniformLocation(shaderID, "hasOtherColor"), 0);
         drawMarchingCubes(vertices, normals);
 
         glfwSwapBuffers(window);
@@ -440,3 +362,5 @@ int main(int argc, char **argv)
     glfwTerminate();
     return 0;
 }
+
+// g++ main.cpp camera.cpp marching_cubes.cpp -o main.exe -lfreeglut -lglew32 -lopengl32 -lglfw3 -lm -lstdc++

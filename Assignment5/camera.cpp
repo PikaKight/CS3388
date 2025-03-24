@@ -18,3 +18,7 @@ void Camera::processMouse(float dx, float dy) {
 void Camera::processScroll(float delta) {
     r = clamp(r - delta * 0.1f, 1.0f, 10.0f);
 }
+
+void Camera::processKeyboard(float delta) {
+    r = clamp(r - delta * 0.1f, 0.01f, 10.0f);
+}
