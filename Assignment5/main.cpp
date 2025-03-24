@@ -41,7 +41,7 @@ GLuint loadShader()
         out vec3 fragViewDir;
 
         void main() {
-            gl_pos = MVP * vec4(pos, 1.0);
+            gl_Position = MVP * vec4(pos, 1.0);
             
             fragNormal =normalize(mat3(transpose(inverse(V))) * normal); // Transform normal to view space
             fragLightDir = normalize(LightDir);  // Light direction in view space
@@ -107,6 +107,26 @@ GLuint loadShader()
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
     glLinkProgram(shaderProgram);
+
+    GLint success;
+    GLchar infoLog[512];
+    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+        cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << endl;
+    }
+
+    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
+        cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << endl;
+    }
+
+    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
+    if (!success) {
+        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
+        cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << endl;
+    }
 
     // Clean up shaders after linking
     glDeleteShader(vertexShader);
@@ -190,7 +210,8 @@ void drawBoundaryBox(float min, float max){
     glBindBuffer(GL_ARRAY_BUFFER, 0); 
 
     glBindVertexArray(0);
-
+    
+    glLineWidth(1.0f);
     // Render the bounding box
     glBindVertexArray(VAO);
     glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, 0);
@@ -198,6 +219,88 @@ void drawBoundaryBox(float min, float max){
 
 }
 
+void drawArrowHead(vec3 pos, vec3 direction, float size) {
+    // Normalize direction
+    vec3 arrowDirection = normalize(direction);
+
+    // Choose an arbitrary perpendicular reference vector
+    vec3 reference = (fabs(arrowDirection.y) > 0.9f) ? vec3(1.0f, 0.0f, 0.0f) : vec3(0.0f, 1.0f, 0.0f);
+
+    // Compute perpendicular vectors
+    vec3 right = normalize(cross(arrowDirection, reference));
+    vec3 up = normalize(cross(right, arrowDirection));
+
+    // Scale the arrowhead
+    float arrowHeadLength = size * 0.2f;  // length of the arrowhead
+    float arrowHeadWidth = size * 0.1f;   // width of the arrowhead
+
+    // Define arrowhead vertices (triangle fan method)
+    vec3 tip = pos + arrowDirection * arrowHeadLength;
+    vec3 left = pos + right * arrowHeadWidth;
+    vec3 rightV = pos - right * arrowHeadWidth;
+
+    GLfloat arrowheadVertices[] = {
+        tip.x, tip.y, tip.z,
+        left.x, left.y, left.z,
+        rightV.x, rightV.y, rightV.z
+    };
+
+    GLuint VAO, VBO;
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(arrowheadVertices), arrowheadVertices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+    glEnableVertexAttribArray(0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    // Render the arrowhead (triangle fan)
+    glBindVertexArray(VAO);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glBindVertexArray(0);
+
+    // Cleanup
+    glDeleteBuffers(1, &VBO);
+    glDeleteVertexArrays(1, &VAO);
+}
+
+
+void drawAxis(vec3 start, vec3 end) {
+    
+    GLfloat lineVertices[] = {
+        start.x, start.y, start.z,
+        end.x, end.y, end.z
+    };
+
+    GLuint VBO, VAO;
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(lineVertices), lineVertices, GL_STATIC_DRAW);
+
+    // Vertex attribute pointer
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+    glEnableVertexAttribArray(0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    glLineWidth(2.5f);
+    // Render the line
+    glBindVertexArray(VAO);
+    glDrawArrays(GL_LINES, 0, 2);
+    glBindVertexArray(0);
+
+    vec3 direction = end - start;
+    drawArrowHead(end, direction, 1.0f);
+}
 
 void drawMarchingCubes(const vector<float>& vertices, const vector<float>& normals) {
     
@@ -302,10 +405,10 @@ int main(int argc, char **argv)
 
     GLuint shaderID = loadShader();
 
-    float isovalue = 0.0f, min = -1.5f, max =  1.5f, stepsize = 0.1f;
+    float isovalue = -1.5f, min = -1.5f, max =  1.5f, stepsize = 0.1f;
 
     auto vertices = marching_cubes([](float x, float y, float z) {
-        return y - sin(x)*cos(z);  // Sphere function
+        return (x*x - y*y - z*z -z);
     }, isovalue, min, max, stepsize);
 
     vector<float> normals = compute_normals(vertices);
@@ -350,6 +453,20 @@ int main(int argc, char **argv)
         glUniform1i(glGetUniformLocation(shaderID, "hasOtherColor"), 1);
         glUniform3f(glGetUniformLocation(shaderID, "fragColor"), 1.0f, 1.0f, 1.0f);
         drawBoundaryBox(min, max);
+        
+        vec3 origin = vec3(min, min, min);
+        vec3 xAxis = vec3((max-min), min, min);
+        vec3 yAxis = vec3(min, (max-min), min);
+        vec3 zAxis = vec3(min, min, (max-min));
+
+        glUniform3f(glGetUniformLocation(shaderID, "fragColor"), 1.0f, 0.0f, 0.0f);
+        drawAxis(origin, xAxis);
+
+        glUniform3f(glGetUniformLocation(shaderID, "fragColor"), 0.0f, 1.0f, 0.0f);
+        drawAxis(origin, yAxis);
+        
+        glUniform3f(glGetUniformLocation(shaderID, "fragColor"), 0.0f, 0.0f, 1.0f);
+        drawAxis(origin, zAxis);
 
 
         glUniform1i(glGetUniformLocation(shaderID, "hasOtherColor"), 0);
