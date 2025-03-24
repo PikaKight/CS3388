@@ -67,6 +67,7 @@ vector<float> compute_normals(const vector<float>& vertices) {
     return normals;
 }
 
+
 vector<float> marching_cubes(
     function<float(float, float, float)> f,
     float isovalue, float min, float max, float stepsize) {
@@ -92,23 +93,24 @@ vector<float> marching_cubes(
 
                 if (cubeIndex == 0 || cubeIndex == 255) continue;
 
-                const float* edges = vertTable[cubeIndex];  // Fix lookup table usage
+                const int* edges = marching_cubes_lut[cubeIndex];  // Fix lookup table usage
 
                 for (int i = 0; edges[i] != -1; i += 3) {
                     for (int j = 0; j < 3; ++j) {
                         int edge = edges[i + j];
 
-                        int edgeIndex1 = edge & 15;
-                        int edgeIndex2 = (edge >> 4) & 15;
+                        int v1 = edge & 7;
+                        int v2 = edge >> 3;
 
-                        float t = (isovalue - cubeValues[edgeIndex1]) / 
-                                  (cubeValues[edgeIndex2] - cubeValues[edgeIndex1]);
-
-                        vec3 p = corners[edgeIndex1] + t * (corners[edgeIndex2] - corners[edgeIndex1]);
-
-                        vertices.push_back(p.x);
-                        vertices.push_back(p.y);
-                        vertices.push_back(p.z);
+                        if (fabs(cubeValues[v2] - cubeValues[v1]) > 1e-6) { 
+                            float t = (isovalue - cubeValues[v1]) / 
+                                      (cubeValues[v2] - cubeValues[v1]);
+                            vec3 p = corners[v1] + t * (corners[v2] - corners[v1]);
+                        
+                            vertices.push_back(p.x);
+                            vertices.push_back(p.y);
+                            vertices.push_back(p.z);
+                        }
                     }
                 }
             }
