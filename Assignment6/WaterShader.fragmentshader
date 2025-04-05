@@ -1,0 +1,46 @@
+#version 400
+
+// Interpolated values from Geometry Shader
+in vec3 fragNormal;
+in vec2 fragUV;
+in vec3 fragLightDir;
+in vec3 fragViewDir;
+
+// Output
+out vec4 color_out;
+
+// Uniforms
+uniform sampler2D waterTexture;
+uniform vec4 modelcolor = vec4(1.0); // or pass from CPU
+
+void phongColor() {
+    // Light properties
+    vec4 LightColor = vec4(1, 1, 1, 1);
+
+    // Normalize inputs
+    vec3 N = normalize(fragNormal);
+    vec3 L = normalize(fragLightDir);
+    vec3 V = normalize(fragViewDir);
+    vec3 R = reflect(-L, N);
+
+    // Material properties
+    vec4 MaterialDiffuseColor = texture(waterTexture, fragUV);
+    vec4 MaterialAmbientColor = vec4(0.2, 0.2, 0.2, modelcolor.a) * MaterialDiffuseColor;
+    vec4 MaterialSpecularColor = vec4(0.7, 0.7, 0.7, modelcolor.a);
+
+    // Diffuse term
+    float cosTheta = max(dot(N, L), 0.0);
+
+    // Specular term
+    float cosAlpha = max(dot(R, V), 0.0);
+
+    // Final color
+    color_out =
+        MaterialAmbientColor +
+        MaterialDiffuseColor * LightColor * cosTheta +
+        MaterialSpecularColor * LightColor * pow(cosAlpha, 8.0);
+}
+
+void main() {
+    phongColor();
+}

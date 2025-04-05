@@ -1,3 +1,4 @@
+
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <fstream>
@@ -139,20 +140,41 @@ float lastX = 400, lastY = 300;
 bool firstMouse = true;
 float zoomFactor = 0.5f;
 
+// Variable to track whether the mouse button is pressed
+bool isMousePressed = false;
+
 void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
     if (firstMouse) {
         lastX = xpos;
         lastY = ypos;
         firstMouse = false;
     }
-    
-    float xOffset = xpos - lastX;
-    float yOffset = lastY - ypos;  // reversed because y-coordinates go from bottom to top
-    lastX = xpos;
-    lastY = ypos;
 
-    camera.processMouse(xOffset, yOffset);
+    // Check if the mouse button is pressed or released
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+        if (!isMousePressed) {
+            // Mouse button is pressed for the first time (on mouse down)
+            isMousePressed = true;
+            lastX = xpos; // reset last position when starting a drag
+            lastY = ypos;
+        }
+
+        // Calculate the offset and move the camera only if the mouse is being dragged
+        float xOffset = xpos - lastX;
+        float yOffset = lastY - ypos;  // reversed because y-coordinates go from bottom to top
+        lastX = xpos;
+        lastY = ypos;
+
+        camera.processMouse(xOffset, yOffset);
+    }
+    else {
+        if (isMousePressed) {
+            // Mouse button is released (on mouse up)
+            isMousePressed = false;
+        }
+    }
 }
+
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
     camera.processScroll(yoffset);
@@ -268,7 +290,6 @@ void drawArrowHead(vec3 pos, vec3 direction, float size) {
     glDeleteBuffers(1, &VBO);
     glDeleteVertexArrays(1, &VAO);
 }
-
 
 void drawAxis(vec3 start, vec3 end) {
     
@@ -405,10 +426,10 @@ int main(int argc, char **argv)
 
     GLuint shaderID = loadShader();
 
-    float isovalue = -1.5f, min = -1.5f, max =  1.5f, stepsize = 0.1f;
+    float isovalue = 0.0f, min = -1.5f, max =  1.5f, stepsize = 0.1f;
 
     auto vertices = marching_cubes([](float x, float y, float z) {
-        return (x*x - y*y - z*z -z);
+        return y - sin(x)*cos(z);
     }, isovalue, min, max, stepsize);
 
     vector<float> normals = compute_normals(vertices);

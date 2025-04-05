@@ -1,0 +1,41 @@
+#version 400
+
+layout (vertices = 4) out;
+
+// Input from vertex shader
+in vec3 vs_worldPos[];   // world position
+in vec2 vs_uv[];         // uv
+in vec3 vs_lightDir[];   // light direction
+in vec3 vs_viewDir[];    // view direction
+in vec3 vs_normal[];
+
+// Output to TES
+out vec3 position_tcs[];
+out vec2 uv_tcs[];
+out vec3 light_tcs[];
+out vec3 eye_tcs[];
+out vec3 normal_tcs[];
+
+vec3 vs_normal;
+
+// Uniforms for dynamic tessellation control
+uniform float outerTess;
+uniform float innerTess;
+
+void main() {
+    // Pass through data to TES (each control point forwards its input)
+    position_tcs[gl_InvocationID] = vs_worldPos[gl_InvocationID];
+    uv_tcs[gl_InvocationID] = vs_uv[gl_InvocationID];
+    light_tcs[gl_InvocationID] = vs_lightDir[gl_InvocationID];
+    eye_tcs[gl_InvocationID] = vs_viewDir[gl_InvocationID];
+    normal_tcs[gl_InvocationID] = vs_normal[gl_InvocationID];
+
+    if (gl_InvocationID == 0) {
+        gl_TessLevelOuter[0] = outerTess;
+        gl_TessLevelOuter[1] = outerTess;
+        gl_TessLevelOuter[2] = outerTess;
+        gl_TessLevelOuter[3] = outerTess;
+        gl_TessLevelInner[0] = innerTess;
+        gl_TessLevelInner[1] = innerTess;
+    }
+}

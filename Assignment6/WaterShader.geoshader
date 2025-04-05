@@ -1,0 +1,58 @@
+#version 400
+
+layout (triangles) in;
+layout (triangle_strip, max_vertices = 3) out;
+
+in vec3 tes_worldPos[];
+in vec2 uv_tes[];
+in vec3 tes_lightDir[];
+in vec3 tes_viewDir[];
+
+out vec3 fragNormal;
+out vec2 fragUV;
+out vec3 fragLightDir;
+out vec3 fragViewDir;
+
+uniform mat4 MVP;
+uniform float time;
+
+vec3 Gerstner(vec3 worldpos, float w, float A, float phi, float Q, vec2 D, int N) {
+    float wave = dot(D, worldpos.xz);
+    float phase = w * wave + phi * time;
+    float Qi = Q * A * w / N;
+    return vec3(
+        Qi * D.x * cos(phase),
+        A * sin(phase),
+        Qi * D.y * cos(phase)
+    );
+}
+
+vec3 GetNormal(vec4 a, vec4 b, vec4 c) {
+    vec3 x = b.xyz - a.xyz;
+    vec3 y = c.xyz - b.xyz;
+    return normalize(cross(x, y));
+}
+
+void main() {
+    vec4 displacedPos[3];
+    for (int i = 0; i < 3; ++i) {
+        vec3 pos = tes_worldPos[i];
+        pos += Gerstner(pos, 4.0, 0.08, 1.1, 0.75, vec2(0.3, 0.6), 4);
+        pos += Gerstner(pos, 2.0, 0.05, 1.1, 0.75, vec2(0.2, 0.866), 4);
+        pos += Gerstner(pos, 0.6, 0.2, 0.4, 0.1, vec2(0.3, 0.7), 4);
+        pos += Gerstner(pos, 0.9, 0.15, 0.4, 0.1, vec2(0.8, 0.1), 4);
+        displacedPos[i] = vec4(pos, 1.0);
+    }
+
+    vec3 normal = GetNormal(displacedPos[0], displacedPos[1], displacedPos[2]);
+
+    for (int i = 0; i < 3; ++i) {
+        gl_Position = MVP * displacedPos[i];
+        fragNormal = normal;
+        fragUV = uv_tes[i];
+        fragLightDir = tes_lightDir[i];
+        fragViewDir = tes_viewDir[i];
+        EmitVertex();
+    }
+    EndPrimitive();
+}

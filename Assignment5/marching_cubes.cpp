@@ -1,6 +1,7 @@
 #include "marching_cubes.h"
 #include "TriTable.hpp"
 #include <glm/glm.hpp>
+#include <iostream>
 #include <vector>
 
 using namespace std;
@@ -68,50 +69,87 @@ vector<float> compute_normals(const vector<float>& vertices) {
 }
 
 
+// Function to interpolate a vertex along an edge using the vertTable
+vec3 interpolateVertex(int edgeIndex, const vec3& p0, const vec3& p1, float val0, float val1, float isovalue) {
+    // Compute the interpolation factor along the edge
+    float t = (isovalue - val0) / (val1 - val0);
+    t = std::clamp(t, 0.0f, 1.0f);
+
+    // Compute the interpolated position using the edge direction from vertTable
+    vec3 edgeDirection(vertTable[edgeIndex][0], vertTable[edgeIndex][1], vertTable[edgeIndex][2]);
+    return vec3(
+        p0.x + t * (p1.x - p0.x),
+        p0.y + t * (p1.y - p0.y),
+        p0.z + t * (p1.z - p0.z)
+    );
+}
+
 vector<float> marching_cubes(
     function<float(float, float, float)> f,
     float isovalue, float min, float max, float stepsize) {
 
     vector<float> vertices;
 
-    for (float x = min; x < max; x += stepsize) {
+    for (float z = min; z < max; z += stepsize) {
         for (float y = min; y < max; y += stepsize) {
-            for (float z = min; z < max; z += stepsize) {
-                
+            for (float x = min; x < max; x += stepsize) {
+
                 float cubeValues[8];
                 vec3 corners[8] = {
-                    {x, y, z}, {x+stepsize, y, z}, {x+stepsize, y+stepsize, z}, {x, y+stepsize, z},
-                    {x, y, z+stepsize}, {x+stepsize, y, z+stepsize}, {x+stepsize, y+stepsize, z+stepsize}, {x, y+stepsize, z+stepsize}
+                    {x, y, z}, {x + stepsize, y, z}, {x + stepsize, y + stepsize, z}, {x, y + stepsize, z},
+                    {x, y, z + stepsize}, {x + stepsize, y, z + stepsize}, {x + stepsize, y + stepsize, z + stepsize}, {x, y + stepsize, z + stepsize}
                 };
 
-                for (int i = 0; i < 8; ++i)
+                // Get scalar values at the 8 cube corners
+                for (int i = 0; i < 8; i++) {
                     cubeValues[i] = f(corners[i].x, corners[i].y, corners[i].z);
+                }
 
                 int cubeIndex = 0;
                 for (int i = 0; i < 8; ++i)
                     if (cubeValues[i] < isovalue) cubeIndex |= (1 << i);
 
+                // If the cube is entirely inside or outside the isosurface, skip it
                 if (cubeIndex == 0 || cubeIndex == 255) continue;
 
-                const int* edges = marching_cubes_lut[cubeIndex];  // Fix lookup table usage
+                // Get the edge table for the current cube configuration
+                const int* edges = marching_cubes_lut[cubeIndex];
 
-                for (int i = 0; edges[i] != -1; i += 3) {
-                    for (int j = 0; j < 3; ++j) {
-                        int edge = edges[i + j];
+                // Iterate over the edges to form triangles
+                for (int i = 0; edges[i] != -1; i += 3) {  // Each triangle has 3 edges
+                    // Get the 3 edges that form the triangle
+                    int edge1 = edges[i];
+                    int edge2 = edges[i + 1];
+                    int edge3 = edges[i + 2];
 
-                        int v1 = edge & 7;
-                        int v2 = edge >> 3;
+                    // Interpolate the vertices along the edges where the isosurface crosses
+                    vec3 p1, p2, p3;
 
-                        if (fabs(cubeValues[v2] - cubeValues[v1]) > 1e-6) { 
-                            float t = (isovalue - cubeValues[v1]) / 
-                                      (cubeValues[v2] - cubeValues[v1]);
-                            vec3 p = corners[v1] + t * (corners[v2] - corners[v1]);
-                        
-                            vertices.push_back(p.x);
-                            vertices.push_back(p.y);
-                            vertices.push_back(p.z);
-                        }
-                    }
+                    // Interpolate along edge1
+                    int v0 = edge1 / 2;
+                    int v1 = (edge1 + 1) / 2;
+                    p1 = interpolateVertex(edge1, corners[v0], corners[v1], cubeValues[v0], cubeValues[v1], isovalue);
+
+                    // Interpolate along edge2
+                    v0 = edge2 / 2;
+                    v1 = (edge2 + 1) / 2;
+                    p2 = interpolateVertex(edge2, corners[v0], corners[v1], cubeValues[v0], cubeValues[v1], isovalue);
+
+                    // Interpolate along edge3
+                    v0 = edge3 / 2;
+                    v1 = (edge3 + 1) / 2;
+                    p3 = interpolateVertex(edge3, corners[v0], corners[v1], cubeValues[v0], cubeValues[v1], isovalue);
+
+                    // Store the triangle vertices
+                    vertices.push_back(p1.x);
+                    vertices.push_back(p1.y);
+                    vertices.push_back(p1.z);
+                    vertices.push_back(p2.x);
+                    vertices.push_back(p2.y);
+                    vertices.push_back(p2.z);
+                    vertices.push_back(p3.x);
+                    vertices.push_back(p3.y);
+                    vertices.push_back(p3.z);
                 }
             }
         }

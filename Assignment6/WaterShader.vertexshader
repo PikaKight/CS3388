@@ -1,0 +1,39 @@
+    #version 400
+
+    // Input vertex data from VBO
+    layout(location = 0) in vec3 vertexPosition_modelspace;
+    layout(location = 1) in vec3 vertexNormal_modelspace;
+
+    // Output to Tesselation Control Shader (TCS)
+    out vec3 vs_worldPos;
+    out vec2 vs_uv;
+    out vec3 vs_lightDir;
+    out vec3 vs_viewDir;
+    out vec3 vs_normal;
+
+    // Uniforms
+    uniform mat4 ModelMatrix;     // usually identity, but safe to include
+    uniform mat4 MVP;         // Full transformation: Projection * View * Model
+    uniform vec3 lightPos;        // world space light position
+    uniform vec3 eyePos;          // world space eye position
+    uniform float time;           // used for animated UVs (optional)
+
+    void main() {
+        // Convert to world space
+        vec4 worldPosition = ModelMatrix * vec4(vertexPosition_modelspace, 1.0);
+
+        vs_worldPos = worldPosition.xyz;
+
+        // Generate UVs based on xz position (and optionally time for movement)
+        float texScale = 40.0; // matches what TES expects
+        vec2 texOffset = vec2(20.0); // shift to avoid negative coords
+        vs_uv = (vs_worldPos.xz + texOffset + (time * 0.08)) / texScale;
+
+        vs_lightDir = lightPos - vs_worldPos;
+        vs_viewDir  = eyePos - vs_worldPos;
+
+        gl_Position = MVP * worldPosition; // passed as is; TCS will forward to TES
+
+        mat3 normalMatrix = transpose(inverse(mat3(ModelMatrix)));
+        vs_normal = normalize(normalMatrix * vertexNormal_modelspace);
+    }
