@@ -113,7 +113,7 @@ public:
 			glUniform1i(glGetUniformLocation(shaderID, "displacementTexture"), 1);
 		}
 
-		
+
 		// Draw
 		glBindVertexArray(VAO);
 

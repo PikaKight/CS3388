@@ -11,7 +11,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 #include <vector>
-#include <filesystem>
 
 #include "PlaneMesh.hpp"
 
@@ -37,7 +36,7 @@ void cameraControlsGlobe(mat4& ViewMatrix, float radius) {
         azimuth += dx * 0.005f;
         elevation += dy * 0.005f;
         if (elevation > radians(89.0f)) elevation = radians(89.0f);
-        if (elevation < radians(-89.0f)) elevation = radians(-89.0f);
+        if (elevation < radians(10.0f)) elevation = radians(10.0f);
     }
 	
     float x = radius * cos(elevation) * sin(azimuth);
